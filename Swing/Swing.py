@@ -536,28 +536,31 @@ class Swing(object):
 
         return
 
-    def process_edge(edge, df, full_edge_set, edge_diff, lag_method):
-        if edge in edge_diff:
-            return edge, {"dataframe": None, "mean_importance": 0,
-                          "max_importance": 0, 'max_edge': None, 'lag_importance': 0,
-                          'lag_method': lag_method, 'rank_importance': np.nan, 'adj_importance': 0}
-        current_df = df[df['Edge'] == edge]
-        max_idx = current_df['Importance'].idxmax()
-        lag_set = list(set(current_df.Lag))
-        lag_importance_score, lag_lump_method = lag_method.split('_')
-        score_method = eval('np.' + lag_importance_score)
-        lump_method = eval('np.' + lag_lump_method)
-        lag_imp = score_method([lump_method(current_df.Importance[current_df.Lag == lag]) for lag in lag_set])
-        lag_adj_imp = score_method([lump_method(current_df.adj_imp[current_df.Lag == lag]) for lag in lag_set])
-        lag_rank = score_method([lump_method(current_df.Rank[current_df.Lag == lag]) for lag in lag_set])
-        
-        return edge, {"dataframe": current_df, "mean_importance": np.mean(current_df.Importance),
+
+    
+    def make_static_edge_dict(self, self_edges=False, lag_method='max_median'):
+        def process_edge(edge, df, full_edge_set, edge_diff, lag_method):
+            if edge in edge_diff:
+                return edge, {"dataframe": None, "mean_importance": 0,
+                              "max_importance": 0, 'max_edge': None, 'lag_importance': 0,
+                              'lag_method': lag_method, 'rank_importance': np.nan, 'adj_importance': 0}
+            current_df = df[df['Edge'] == edge]
+            max_idx = current_df['Importance'].idxmax()
+            lag_set = list(set(current_df.Lag))
+            lag_importance_score, lag_lump_method = lag_method.split('_')
+            score_method = eval('np.' + lag_importance_score)
+            lump_method = eval('np.' + lag_lump_method)
+            lag_imp = score_method([lump_method(current_df.Importance[current_df.Lag == lag]) for lag in lag_set])
+            lag_adj_imp = score_method([lump_method(current_df.adj_imp[current_df.Lag == lag]) for lag in lag_set])
+            lag_rank = score_method([lump_method(current_df.Rank[current_df.Lag == lag]) for lag in lag_set])
+            
+            return edge, {"dataframe": current_df, "mean_importance": np.mean(current_df.Importance),
                       "max_importance": current_df.Importance[max_idx],
                       'max_edge': (current_df.P_window[max_idx], current_df.C_window[max_idx]),
                       'lag_importance': lag_imp, 'lag_method': lag_method,
                       'rank_importance': lag_rank, 'adj_importance': lag_adj_imp}
-    
-    def make_static_edge_dict(self, self_edges=False, lag_method='max_median'):
+        
+        
         print("Lumping edges...", end='')
         df = self.full_edge_list.copy()
         df = df[df['Importance'] > 0]
